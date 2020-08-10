@@ -604,8 +604,8 @@ where
 /// return a minimum spanning forest, i.e. a minimum spanning tree for each connected
 /// component of the graph.
 ///
-/// The resulting graph has all the vertices of the input graph (with identical node indices),
-/// and **|V| - c** edges, where **c** is the number of connected components in `g`.
+/// The resulting graph has all the nodes of the input graph (with identical node indices),
+/// and **|N| - c** edges, where **c** is the number of connected components in `g`.
 ///
 /// Use `from_elements` to create a graph from the resulting iterator.
 pub fn min_spanning_tree<G>(g: G) -> MinSpanningTree<G>
@@ -796,7 +796,7 @@ where
     let ix = |i| g.to_index(i);
 
     distance[ix(source)] = <_>::zero();
-    // scan up to |V| - 1 times.
+    // scan up to |N| - 1 times.
     for _ in 1..g.node_count() {
         let mut did_update = false;
         for i in g.node_identifiers() {

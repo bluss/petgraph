@@ -192,7 +192,7 @@ pub fn node_index(ax: usize) -> NodeIndex {
 ///   to mark the absence of an edge.
 /// - Index type `Ix` that sets the maximum size for the graph (defaults to `DefaultIx`).
 ///
-/// The graph uses **O(|V^2|)** space, with fast edge insertion & amortized node insertion, as well
+/// The graph uses **O(|N^2|)** space, with fast edge insertion & amortized node insertion, as well
 /// as efficient graph search and graph algorithms on dense graphs.
 ///
 /// This graph is backed by a flattened 2D array. For undirected graphs, only the lower triangular
@@ -284,7 +284,7 @@ impl<N, E, Ty: EdgeType, Null: Nullable<Wrapped = E>, Ix: IndexType>
 
     /// Remove `a` from the graph.
     ///
-    /// Computes in **O(V)** time, due to the removal of edges with other nodes.
+    /// Computes in **O(N)** time, due to the removal of edges with other nodes.
     ///
     /// **Panics** if the node `a` does not exist.
     pub fn remove_node(&mut self, a: NodeIndex<Ix>) -> N {
@@ -323,7 +323,7 @@ impl<N, E, Ty: EdgeType, Null: Nullable<Wrapped = E>, Ix: IndexType>
     /// Return the previous data, if any.
     ///
     /// Computes in **O(1)** time, best case.
-    /// Computes in **O(|V|^2)** time, worst case (matrix needs to be re-allocated).
+    /// Computes in **O(|N|^2)** time, worst case (matrix needs to be re-allocated).
     ///
     /// **Panics** if any of the nodes don't exist.
     pub fn update_edge(&mut self, a: NodeIndex<Ix>, b: NodeIndex<Ix>, weight: E) -> Option<E> {
@@ -343,7 +343,7 @@ impl<N, E, Ty: EdgeType, Null: Nullable<Wrapped = E>, Ix: IndexType>
     /// Return the index of the new edge.
     ///
     /// Computes in **O(1)** time, best case.
-    /// Computes in **O(|V|^2)** time, worst case (matrix needs to be re-allocated).
+    /// Computes in **O(|N|^2)** time, worst case (matrix needs to be re-allocated).
     ///
     /// **Panics** if any of the nodes don't exist.
     /// **Panics** if an edge already exists from `a` to `b`.

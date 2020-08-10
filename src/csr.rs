@@ -34,11 +34,11 @@ const BINARY_SEARCH_CUTOFF: usize = 32;
 /// - Index type `Ix`, which determines the maximum size of the graph.
 ///
 ///
-/// Using **O(|E| + |V|)** space.
+/// Using **O(|E| + |N|)** space.
 ///
 /// Self loops are allowed, no parallel edges.
 ///
-/// Fast iteration of the outgoing edges of a vertex.
+/// Fast iteration of the outgoing edges of a node.
 ///
 /// [`CSR`]: https://en.wikipedia.org/wiki/Sparse_matrix#Compressed_sparse_row_(CSR,_CRS_or_Yale_format)
 #[derive(Debug)]
@@ -142,7 +142,7 @@ where
     /// Edges **must** be sorted and unique, where the sort order is the default
     /// order for the pair *(u, v)* in Rust (*u* has priority).
     ///
-    /// Computes in **O(|E| + |V|)** time.
+    /// Computes in **O(|E| + |N|)** time.
     /// # Example
     /// ```rust
     /// use petgraph::csr::Csr;
@@ -276,7 +276,7 @@ where
     /// Return `true` if the edge was added
     ///
     /// If you add all edges in row-major order, the time complexity
-    /// is **O(|V|·|E|)** for the whole operation.
+    /// is **O(|N|·|E|)** for the whole operation.
     ///
     /// **Panics** if `a` or `b` are out of bounds.
     pub fn add_edge(&mut self, a: NodeIndex<Ix>, b: NodeIndex<Ix>, weight: E) -> bool
@@ -332,7 +332,7 @@ where
         }
     }
 
-    /// Computes in **O(log |V|)** time.
+    /// Computes in **O(log |N|)** time.
     ///
     /// **Panics** if the node `a` does not exist.
     pub fn contains_edge(&self, a: NodeIndex<Ix>, b: NodeIndex<Ix>) -> bool {

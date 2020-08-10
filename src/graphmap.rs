@@ -36,7 +36,7 @@ pub type DiGraphMap<N, E> = GraphMap<N, E, Directed>;
 /// of its node weights `N`.
 ///
 /// It uses an combined adjacency list and sparse adjacency matrix
-/// representation, using **O(|V| + |E|)** space, and allows testing for edge
+/// representation, using **O(|N| + |E|)** space, and allows testing for edge
 /// existence in constant time.
 ///
 /// `GraphMap` is parameterized over:
@@ -185,7 +185,7 @@ where
 
     /// Return `true` if node `n` was removed.
     ///
-    /// Computes in **O(V)** time, due to the removal of edges with other nodes.
+    /// Computes in **O(N)** time, due to the removal of edges with other nodes.
     pub fn remove_node(&mut self, n: N) -> bool {
         let links = match self.nodes.swap_remove(&n) {
             None => return false,
@@ -413,7 +413,7 @@ where
     ///    node weights in the resulting `Graph`, too.
     /// 2. Note that the index type is user-chosen.
     ///
-    /// Computes in **O(|V| + |E|)** time (average).
+    /// Computes in **O(|N| + |E|)** time (average).
     ///
     /// **Panics** if the number of nodes or edges does not fit with
     /// the resulting graph's index type.

@@ -271,7 +271,7 @@ impl<E, Ix: IndexType> Edge<E, Ix> {
 /// The `Graph` is a regular Rust collection and is `Send` and `Sync` (as long
 /// as associated data `N` and `E` are).
 ///
-/// The graph uses **O(|V| + |E|)** space, and allows fast node and edge insert,
+/// The graph uses **O(|N| + |E|)** space, and allows fast node and edge insert,
 /// efficient graph search and graph algorithms.
 /// It implements **O(e')** edge lookup and edge and node removals, where **e'**
 /// is some local measure of edge count.
@@ -711,7 +711,7 @@ where
     /// (that edge will adopt the removed edge index).
     ///
     /// Computes in **O(e')** time, where **e'** is the size of four particular edge lists, for
-    /// the vertices of `e` and the vertices of another affected edge.
+    /// the nodes of `e` and the nodes of another affected edge.
     pub fn remove_edge(&mut self, e: EdgeIndex<Ix>) -> Option<E> {
         // every edge is part of two lists,
         // outgoing and incoming edges.
@@ -951,7 +951,7 @@ where
     /// For a graph with undirected edges, both the sinks and the sources are
     /// just the nodes without edges.
     ///
-    /// The whole iteration computes in **O(|V|)** time.
+    /// The whole iteration computes in **O(|N|)** time.
     pub fn externals(&self, dir: Direction) -> Externals<N, Ty, Ix> {
         Externals {
             iter: self.nodes.iter().enumerate(),
