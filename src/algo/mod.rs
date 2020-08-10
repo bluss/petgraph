@@ -25,6 +25,7 @@ use crate::visit::Walker;
 use crate::visit::{Data, IntoNodeReferences, NodeRef};
 
 pub use super::astar::astar;
+pub use super::astar::AstarInstance;
 pub use super::dijkstra::dijkstra;
 pub use super::k_shortest_path::k_shortest_path;
 

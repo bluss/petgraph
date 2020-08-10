@@ -22,8 +22,9 @@ use itertools::cloned;
 use rand::Rng;
 
 use petgraph::algo::{
-    bellman_ford, condensation, dijkstra, is_cyclic_directed, is_cyclic_undirected, is_isomorphic,
-    is_isomorphic_matching, k_shortest_path, kosaraju_scc, min_spanning_tree, tarjan_scc, toposort,
+    astar, bellman_ford, condensation, dijkstra, is_cyclic_directed, is_cyclic_undirected,
+    is_isomorphic, is_isomorphic_matching, k_shortest_path, kosaraju_scc, min_spanning_tree, tarjan_scc, toposort,
+    AstarInstance,
 };
 use petgraph::data::FromElements;
 use petgraph::dot::{Config, Dot};
@@ -980,6 +981,17 @@ quickcheck! {
         }
         for i in edges {
             assert!(gr2.edge_weight(edge_index(i)).is_none());
+        }
+    }
+}
+
+quickcheck! {
+    fn astar_instance_equivalence(graph: Graph<u32, u32>, node: u32) -> () {
+        let mut instance = AstarInstance::new(&graph, |f| f == node.into(), |e| *e.weight(), |_| 0);
+        for start in graph.node_indices() {
+            let path = astar(&graph, start, |f| f == node.into(), |e| *e.weight(), |_| 0);
+            let instance_path = instance.run(start);
+            assert_eq!(path, instance_path);
         }
     }
 }
