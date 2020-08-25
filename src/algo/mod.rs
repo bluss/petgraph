@@ -5,18 +5,21 @@
 //! the `Graph` type.
 
 pub mod dominators;
+mod test;
 
 use std::cmp::min;
-use std::collections::{BinaryHeap, HashMap};
+use std::collections::{BinaryHeap, HashMap, HashSet};
+use std::hash::Hash;
 
 use crate::prelude::*;
 
 use super::graph::IndexType;
 use super::unionfind::UnionFind;
 use super::visit::{
-    GraphBase, GraphRef, IntoEdgeReferences, IntoEdges, IntoNeighbors, IntoNeighborsDirected,
-    IntoNodeIdentifiers, NodeCompactIndexable, NodeCount, NodeIndexable, Reversed, VisitMap,
-    Visitable,
+    GetAdjacencyMatrix, GraphBase, GraphBase, GraphRef, GraphRef, 
+    IntoEdgeReferences, IntoEdges, IntoNeighbors, IntoNeighborsDirected, 
+    IntoNodeIdentifiers, NodeCompactIndexable, NodeCount, NodeIndexable, 
+    Reversed, VisitMap, Visitable,
 };
 use super::EdgeType;
 use crate::data::Element;
@@ -916,4 +919,136 @@ impl FloatMeasure for f64 {
     fn infinite() -> Self {
         1. / 0.
     }
+}
+
+
+/// Finds maximal cliques containing all the vertices in r, some of the
+/// vertices in p, and none of the vertices in x.
+fn bron_kerbosch_pivot<G>(g: G,
+                            adj_mat: &G::AdjMatrix,
+                            r: HashSet<G::NodeId>,
+                            mut p: HashSet<G::NodeId>,
+                            mut x: HashSet<G::NodeId>)
+    -> Vec<HashSet<G::NodeId>>
+    where G: GetAdjacencyMatrix,
+          G: IntoNeighbors,
+          G::NodeId: Eq + Hash,
+{
+    let mut cliques = Vec::with_capacity(1);
+    if p.is_empty() {
+        if x.is_empty() {
+            cliques.push(r);
+        }
+        return cliques;
+    }
+    let u = //pick pivot to be vertex with max degree
+    {
+        let mut max_deg = 0;
+        let mut max_vtx = None;
+        for &v in &p {
+            let c = g.neighbors(v).count();
+            if max_vtx.is_none() || c > max_deg {
+                max_deg = c;
+                max_vtx = Some(v);
+            }
+        }
+        max_vtx.unwrap()
+    };
+    let mut todo = p.iter()
+        .filter(|&v| (u == *v ||
+            !g.is_adjacent(adj_mat, u, *v) ||
+            !g.is_adjacent(adj_mat, *v, u))) //skip neighbors of pivot
+        .cloned()
+        .collect::<Vec<G::NodeId>>();
+    while let Some(v) = todo.pop() {
+        let mut neighbors = HashSet::new();
+        let mut walker = g.neighbors(v);
+        while let Some(w) = walker.next() { //filter
+            if g.is_adjacent(adj_mat, w, v) {
+                neighbors.insert(w);
+            }
+        }
+        p.remove(&v);
+        let mut next_r = r.clone();
+        next_r.insert(v);
+
+        let next_p = p.intersection(&neighbors).cloned().collect::<HashSet<G::NodeId>>();
+        let next_x = x.intersection(&neighbors).cloned().collect::<HashSet<G::NodeId>>();
+
+        cliques.extend(bron_kerbosch_pivot(g, adj_mat, next_r, next_p, next_x));
+
+        x.insert(v);
+    }
+
+    return cliques;
+}
+
+
+/// Find all maximal cliques in a graph
+pub fn maximal_cliques<G>(g: G) -> Vec<HashSet<G::NodeId>>
+    where G: GetAdjacencyMatrix,
+          G: IntoNodeIdentifiers + IntoNeighbors,
+          G::NodeId: Eq + Hash,
+{
+    let r = HashSet::new();
+    let p = g.node_identifiers().collect::<HashSet<G::NodeId>>();
+    let x = HashSet::new();
+    let adj_mat = g.adjacency_matrix();
+    return bron_kerbosch_pivot(g, &adj_mat, r, p, x);
+}
+
+/// (reference implementation)
+/// Finds maximal cliques containing all the vertices in r, some of the
+/// vertices in p, and none of the vertices in x.
+#[allow(dead_code)] //used by tests
+fn bron_kerbosch_ref<G>(g: G,
+                            adj_mat: &G::AdjMatrix,
+                            r: HashSet<G::NodeId>,
+                            mut p: HashSet<G::NodeId>,
+                            mut x: HashSet<G::NodeId>)
+    -> Vec<HashSet<G::NodeId>>
+    where G: GetAdjacencyMatrix,
+          G: IntoNeighbors,
+          G::NodeId: Eq + Hash,
+{
+    let mut cliques = Vec::with_capacity(1);
+    if p.is_empty() && x.is_empty() {
+        cliques.push(r);
+        return cliques;
+    }
+    let mut todo = p.iter().cloned().collect::<Vec<G::NodeId>>();
+    while let Some(v) = todo.pop() {
+        p.remove(&v);
+        let mut next_r = r.clone();
+        next_r.insert(v);
+
+        let mut neighbors = HashSet::new();
+        let mut walker = g.neighbors(v);
+        while let Some(u) = walker.next() {
+            if g.is_adjacent(adj_mat, u, v) {
+                neighbors.insert(u);
+            }
+        }
+
+        let next_p = p.intersection(&neighbors).cloned().collect::<HashSet<G::NodeId>>();
+        let next_x = x.intersection(&neighbors).cloned().collect::<HashSet<G::NodeId>>();
+
+        cliques.extend(bron_kerbosch_ref(g, adj_mat, next_r, next_p, next_x));
+
+        x.insert(v);
+    }
+    return cliques;
+}
+
+/// (reference implementation)
+/// Find all maximal cliques in a graph.
+#[allow(dead_code)] //used by tests
+fn maximal_cliques_ref<G>(g: G) -> Vec<HashSet<G::NodeId>>
+    where G: GetAdjacencyMatrix,
+          G: IntoNodeIdentifiers + IntoNeighbors,
+          G::NodeId: Eq + Hash,
+{
+    let adj_mat = g.adjacency_matrix();
+    let p = g.node_identifiers().collect::<HashSet<G::NodeId>>();
+    return bron_kerbosch_ref(g, &adj_mat, HashSet::new(), p, HashSet::new());
 }
