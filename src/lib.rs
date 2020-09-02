@@ -149,6 +149,7 @@ mod iter_utils;
 mod k_shortest_path;
 #[cfg(feature = "matrix_graph")]
 pub mod matrix_graph;
+mod modularity;
 #[cfg(feature = "quickcheck")]
 mod quickcheck;
 #[cfg(feature = "serde-1")]
