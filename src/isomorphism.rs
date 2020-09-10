@@ -12,11 +12,11 @@ struct Vf2State<Ty, Ix> {
     /// NodeIndex::end() for no mapping.
     mapping: Vec<NodeIndex<Ix>>,
     /// out[i] is non-zero if i is in either M_0(s) or Tout_0(s)
-    /// These are all the next vertices that are not mapped yet, but
+    /// These are all the next nodes that are not mapped yet, but
     /// have an outgoing edge from the mapping.
     out: Vec<usize>,
     /// ins[i] is non-zero if i is in either M_0(s) or Tin_0(s)
-    /// These are all the incoming vertices, those not mapped yet, but
+    /// These are all the incoming nodes, those not mapped yet, but
     /// have an edge from them into the mapping.
     /// Unused if graph is undirected -- it's identical with out in that case.
     ins: Vec<usize>,

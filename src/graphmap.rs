@@ -36,7 +36,8 @@ pub type DiGraphMap<N, E> = GraphMap<N, E, Directed>;
 /// of its node weights `N`.
 ///
 /// It uses an combined adjacency list and sparse adjacency matrix
-/// representation, using **O(|V| + |E|)** space, and allows testing for edge
+/// representation, using **O(|V| + |E|)** space where V is the set of nodes
+/// and E is the set of edges, and allows testing for edge
 /// existence in constant time.
 ///
 /// `GraphMap` is parameterized over:
@@ -413,7 +414,7 @@ where
     ///    node weights in the resulting `Graph`, too.
     /// 2. Note that the index type is user-chosen.
     ///
-    /// Computes in **O(|V| + |E|)** time (average).
+    /// Computes in **O(|V| + |E|)** time (average) where V is the set of nodes and E is the set of edges.
     ///
     /// **Panics** if the number of nodes or edges does not fit with
     /// the resulting graph's index type.

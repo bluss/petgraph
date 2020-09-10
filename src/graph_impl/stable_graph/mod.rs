@@ -47,8 +47,8 @@ mod serialization;
 /// - Edge type `Ty` that determines whether the graph edges are directed or undirected.
 /// - Index type `Ix`, which determines the maximum size of the graph.
 ///
-/// The graph uses **O(|V| + |E|)** space, and allows fast node and edge insert
-/// and efficient graph search.
+/// The graph uses **O(|V| + |E|)** space where V is the set of nodes and E is the 
+/// set of edges, and allows fast node and edge insert and efficient graph search.
 ///
 /// It implements **O(e')** edge lookup and edge and node removals, where **e'**
 /// is some local measure of edge count.
@@ -214,7 +214,7 @@ where
         }
     }
 
-    /// Return the number of nodes (vertices) in the graph.
+    /// Return the number of nodes (also called vertices) in the graph.
     ///
     /// Computes in **O(1)** time.
     pub fn node_count(&self) -> usize {
@@ -687,7 +687,7 @@ where
     /// For a graph with undirected edges, both the sinks and the sources are
     /// just the nodes without edges.
     ///
-    /// The whole iteration computes in **O(|V|)** time.
+    /// The whole iteration computes in **O(|V|)** time where V is the set of nodes.
     pub fn externals(&self, dir: Direction) -> Externals<N, Ty, Ix> {
         Externals {
             iter: self.raw_nodes().iter().enumerate(),
@@ -1128,7 +1128,7 @@ where
 
 /// Convert a `Graph` into a `StableGraph`
 ///
-/// Computes in **O(|V| + |E|)** time.
+/// Computes in **O(|V| + |E|)** time where V is the set of nodes and E is the set of edges.
 ///
 /// The resulting graph has the same node and edge indices as
 /// the original graph.
@@ -1163,7 +1163,7 @@ where
 
 /// Convert a `StableGraph` into a `Graph`
 ///
-/// Computes in **O(|V| + |E|)** time.
+/// Computes in **O(|V| + |E|)** time where V is the set of nodes and E is the set of edges.
 ///
 /// This translates the stable graph into a graph with node and edge indices in
 /// a compact interval without holes (like `Graph`s always are).

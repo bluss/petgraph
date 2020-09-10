@@ -74,14 +74,14 @@ pub fn connected_components<G>(g: G) -> usize
 where
     G: NodeCompactIndexable + IntoEdgeReferences,
 {
-    let mut vertex_sets = UnionFind::new(g.node_bound());
+    let mut node_sets = UnionFind::new(g.node_bound());
     for edge in g.edge_references() {
         let (a, b) = (edge.source(), edge.target());
 
-        // union the two vertices of the edge
-        vertex_sets.union(g.to_index(a), g.to_index(b));
+        // union the two nodes of the edge
+        node_sets.union(g.to_index(a), g.to_index(b));
     }
-    let mut labels = vertex_sets.into_labeling();
+    let mut labels = node_sets.into_labeling();
     labels.sort();
     labels.dedup();
     labels.len()
@@ -98,7 +98,7 @@ where
     for edge in g.edge_references() {
         let (a, b) = (edge.source(), edge.target());
 
-        // union the two vertices of the edge
+        // union the two nodes of the edge
         //  -- if they were already the same, then we have a cycle
         if !edge_sets.union(g.to_index(a), g.to_index(b)) {
             return true;
@@ -605,8 +605,8 @@ where
 /// return a minimum spanning forest, i.e. a minimum spanning tree for each connected
 /// component of the graph.
 ///
-/// The resulting graph has all the vertices of the input graph (with identical node indices),
-/// and **|V| - c** edges, where **c** is the number of connected components in `g`.
+/// The resulting graph has all the nodes of the input graph (with identical node indices),
+/// and **|V| - c** edges, where V is the set of nodes and **c** is the number of connected components in `g`.
 ///
 /// Use `from_elements` to create a graph from the resulting iterator.
 pub fn min_spanning_tree<G>(g: G) -> MinSpanningTree<G>
@@ -615,7 +615,7 @@ where
     G::EdgeWeight: Clone + PartialOrd,
     G: IntoNodeReferences + IntoEdgeReferences + NodeIndexable,
 {
-    // Initially each vertex is its own disjoint subgraph, track the connectedness
+    // Initially each node is its own disjoint subgraph, track the connectedness
     // of the pre-MST with a union & find datastructure.
     let subgraphs = UnionFind::new(g.node_bound());
 
@@ -675,7 +675,7 @@ where
         // Kruskal's algorithm.
         // Algorithm is this:
         //
-        // 1. Create a pre-MST with all the vertices and no edges.
+        // 1. Create a pre-MST with all the nodes and no edges.
         // 2. Repeat:
         //
         //  a. Remove the shortest edge from the original graph.

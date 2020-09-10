@@ -31,12 +31,12 @@ pub struct Generator<Ty> {
 }
 
 impl Generator<Directed> {
-    /// Generate all possible Directed acyclic graphs (DAGs) of a particular number of vertices.
+    /// Generate all possible Directed acyclic graphs (DAGs) of a particular number of nodes.
     ///
     /// These are only generated with one per isomorphism, so they use
     /// one canonical node labeling where node *i* can only have edges to node *j* if *i < j*.
     ///
-    /// For a graph of *k* vertices there are *e = (k - 1) k / 2* possible edges and
+    /// For a graph of *k* nodes there are *e = (k - 1) k / 2* possible edges and
     /// *2<sup>e</sup>* DAGs.
     pub fn directed_acyclic(nodes: usize) -> Self {
         assert!(nodes != 0);
@@ -54,11 +54,11 @@ impl Generator<Directed> {
 }
 
 impl<Ty: EdgeType> Generator<Ty> {
-    /// Generate all possible graphs of a particular number of vertices.
+    /// Generate all possible graphs of a particular number of nodes.
     ///
     /// All permutations are generated, so the graphs are not unique down to isomorphism.
     ///
-    /// For a graph of *k* vertices there are *e = k²* possible edges and
+    /// For a graph of *k* nodes there are *e = k²* possible edges and
     /// *2<sup>k<sup>2</sup></sup>* graphs.
     pub fn all(nodes: usize, allow_selfloops: bool) -> Self {
         let scale = if Ty::is_directed() { 1 } else { 2 };
