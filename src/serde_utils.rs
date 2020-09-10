@@ -1,7 +1,14 @@
+#[cfg(feature = "std")]
+use std::{fmt, marker::PhantomData};
+
+#[cfg(feature = "no_std")]
+use core::{fmt, marker::PhantomData};
+
+#[cfg(feature = "alloc")]
+use alloc::vec::Vec;
+
 use serde::de::{Deserialize, Error, SeqAccess, Visitor};
 use serde::ser::{Serialize, SerializeSeq, Serializer};
-use std::fmt;
-use std::marker::PhantomData;
 
 /// Map to serializeable representation
 pub trait IntoSerializable {

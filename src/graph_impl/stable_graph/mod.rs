@@ -2,15 +2,23 @@
 //!
 //! Depends on `feature = "stable_graph"`.
 //!
+#[cfg(feature = "std")]
+use std::{
+    cmp, fmt, iter,
+    marker::PhantomData,
+    mem::{replace, size_of},
+    ops::{Index, IndexMut},
+    slice,
+};
 
-use std::cmp;
-use std::fmt;
-use std::iter;
-use std::marker::PhantomData;
-use std::mem::replace;
-use std::mem::size_of;
-use std::ops::{Index, IndexMut};
-use std::slice;
+#[cfg(feature = "no_std")]
+use core::{
+    cmp, fmt, iter,
+    marker::PhantomData,
+    mem::{replace, size_of},
+    ops::{Index, IndexMut},
+    slice,
+};
 
 use crate::{Directed, Direction, EdgeType, Graph, Incoming, Outgoing, Undirected};
 
@@ -1734,6 +1742,7 @@ impl<'a, E, Ix: IndexType> DoubleEndedIterator for EdgeIndices<'a, E, Ix> {
     }
 }
 
+#[allow(unused_variables)]
 #[test]
 fn stable_graph() {
     let mut gr = StableGraph::<_, _>::with_capacity(0, 0);
@@ -1741,29 +1750,37 @@ fn stable_graph() {
     let b = gr.add_node(1);
     let c = gr.add_node(2);
     let _ed = gr.add_edge(a, b, 1);
+    #[cfg(feature = "std")]
     println!("{:?}", gr);
     gr.remove_node(b);
+    #[cfg(feature = "std")]
     println!("{:?}", gr);
     let d = gr.add_node(3);
+    #[cfg(feature = "std")]
     println!("{:?}", gr);
     gr.check_free_lists();
     gr.remove_node(a);
     gr.check_free_lists();
     gr.remove_node(c);
     gr.check_free_lists();
+    #[cfg(feature = "std")]
     println!("{:?}", gr);
     gr.add_edge(d, d, 2);
+    #[cfg(feature = "std")]
     println!("{:?}", gr);
 
     let e = gr.add_node(4);
     gr.add_edge(d, e, 3);
+    #[cfg(feature = "std")]
     println!("{:?}", gr);
     for neigh in gr.neighbors(d) {
+        #[cfg(feature = "std")]
         println!("edge {:?} -> {:?}", d, neigh);
     }
     gr.check_free_lists();
 }
 
+#[allow(unused_variables)]
 #[test]
 fn dfs() {
     use crate::visit::Dfs;
@@ -1780,10 +1797,12 @@ fn dfs() {
     gr.add_edge(c, d, 5);
     gr.add_edge(d, b, 6);
     gr.add_edge(c, b, 7);
+    #[cfg(feature = "std")]
     println!("{:?}", gr);
 
     let mut dfs = Dfs::new(&gr, a);
     while let Some(next) = dfs.next(&gr) {
+        #[cfg(feature = "std")]
         println!("dfs visit => {:?}, weight={:?}", next, &gr[next]);
     }
 }

@@ -1,11 +1,29 @@
-use std::cmp;
-use std::fmt;
-use std::hash::Hash;
-use std::iter;
-use std::marker::PhantomData;
-use std::mem::size_of;
-use std::ops::{Index, IndexMut, Range};
-use std::slice;
+#[cfg(feature = "std")]
+use std::{
+    cmp::{self, max},
+    fmt,
+    hash::Hash,
+    iter,
+    marker::PhantomData,
+    mem::size_of,
+    ops::{Index, IndexMut, Range},
+    slice, u16, u32, u8, usize,
+};
+
+#[cfg(feature = "no_std")]
+use core::{
+    cmp::{self, max},
+    fmt,
+    hash::Hash,
+    iter,
+    marker::PhantomData,
+    mem::size_of,
+    ops::{Index, IndexMut, Range},
+    slice, u16, u32, u8, usize,
+};
+
+#[cfg(feature = "alloc")]
+use alloc::vec::Vec;
 
 use crate::{Directed, Direction, EdgeType, Incoming, IntoWeightedEdge, Outgoing, Undirected};
 
@@ -47,7 +65,7 @@ unsafe impl IndexType for usize {
     }
     #[inline(always)]
     fn max() -> Self {
-        ::std::usize::MAX
+        usize::MAX
     }
 }
 
@@ -62,7 +80,7 @@ unsafe impl IndexType for u32 {
     }
     #[inline(always)]
     fn max() -> Self {
-        ::std::u32::MAX
+        u32::MAX
     }
 }
 
@@ -77,7 +95,7 @@ unsafe impl IndexType for u16 {
     }
     #[inline(always)]
     fn max() -> Self {
-        ::std::u16::MAX
+        u16::MAX
     }
 }
 
@@ -92,7 +110,7 @@ unsafe impl IndexType for u8 {
     }
     #[inline(always)]
     fn max() -> Self {
-        ::std::u8::MAX
+        u8::MAX
     }
 }
 
@@ -429,8 +447,6 @@ enum Pair<T> {
     One(T),
     None,
 }
-
-use std::cmp::max;
 
 /// Get mutable references at index `a` and `b`.
 fn index_twice<T>(slc: &mut [T], a: usize, b: usize) -> Pair<&mut T> {
@@ -1730,7 +1746,7 @@ where
 
 /// Iterator yielding mutable access to all node weights.
 pub struct NodeWeightsMut<'a, N: 'a, Ix: IndexType = DefaultIx> {
-    nodes: ::std::slice::IterMut<'a, Node<N, Ix>>,
+    nodes: slice::IterMut<'a, Node<N, Ix>>,
 }
 
 impl<'a, N, Ix> Iterator for NodeWeightsMut<'a, N, Ix>
@@ -1750,7 +1766,7 @@ where
 
 /// Iterator yielding mutable access to all edge weights.
 pub struct EdgeWeightsMut<'a, E: 'a, Ix: IndexType = DefaultIx> {
-    edges: ::std::slice::IterMut<'a, Edge<E, Ix>>,
+    edges: slice::IterMut<'a, Edge<E, Ix>>,
 }
 
 impl<'a, E, Ix> Iterator for EdgeWeightsMut<'a, E, Ix>

@@ -1,17 +1,34 @@
 //! `GraphMap<N, E, Ty>` is a graph datastructure where node values are mapping
 //! keys.
 
+#[cfg(feature = "std")]
+use std::{
+    cmp::Ordering,
+    fmt,
+    hash::{self, Hash},
+    iter::{Cloned, DoubleEndedIterator, FromIterator},
+    marker::PhantomData,
+    ops::{Deref, Index, IndexMut},
+    slice::Iter,
+};
+
+#[cfg(feature = "no_std")]
+use core::{
+    cmp::Ordering,
+    fmt,
+    hash::{self, Hash},
+    iter::{Cloned, DoubleEndedIterator, FromIterator},
+    marker::PhantomData,
+    ops::{Deref, Index, IndexMut},
+    slice::Iter,
+};
+
+#[cfg(feature = "alloc")]
+use alloc::vec::Vec;
+
 use indexmap::map::Keys;
 use indexmap::map::{Iter as IndexMapIter, IterMut as IndexMapIterMut};
 use indexmap::IndexMap;
-use std::cmp::Ordering;
-use std::fmt;
-use std::hash::{self, Hash};
-use std::iter::FromIterator;
-use std::iter::{Cloned, DoubleEndedIterator};
-use std::marker::PhantomData;
-use std::ops::{Deref, Index, IndexMut};
-use std::slice::Iter;
 
 use crate::{Directed, Direction, EdgeType, Incoming, Outgoing, Undirected};
 

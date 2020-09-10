@@ -2,6 +2,10 @@ extern crate quickcheck;
 use self::quickcheck::{Arbitrary, Gen};
 
 use crate::graph::{node_index, IndexType};
+
+#[cfg(feature = "alloc")]
+use alloc::{boxed::Box, vec::Vec};
+
 #[cfg(feature = "stable_graph")]
 use crate::stable_graph::StableGraph;
 use crate::{EdgeType, Graph};

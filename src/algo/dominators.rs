@@ -12,9 +12,25 @@
 //! strictly dominates **B** and there does not exist any node **C** where **A**
 //! dominates **C** and **C** dominates **B**.
 
-use std::cmp::Ordering;
-use std::collections::{HashMap, HashSet, hash_map::Iter};
-use std::hash::Hash;
+#[cfg(feature = "alloc")]
+use alloc::{
+    collections::{BTreeSet as HashSet, btree_map::Iter},
+    vec::Vec,
+};
+
+#[cfg(feature = "alloc")]
+use indexmap::IndexMap as HashMap;
+
+#[cfg(feature = "no_std")]
+use core::{cmp::Ordering, hash::Hash, usize, iter::Iterator};
+
+#[cfg(feature = "std")]
+use std::{
+    cmp::Ordering,
+    collections::{HashMap, HashSet},
+    hash::Hash,
+    usize,
+};
 
 use crate::visit::{DfsPostOrder, GraphBase, IntoNeighbors, Visitable, Walker};
 
@@ -49,7 +65,7 @@ where
         }
     }
 
-    /// Iterate over the given node's strict dominators.
+    /// Iterate over the given node's that strict dominators.
     ///
     /// If the given node is not reachable from the root, then `None` is
     /// returned.
@@ -141,7 +157,7 @@ where
 
 /// The undefined dominator sentinel, for when we have not yet discovered a
 /// node's dominator.
-const UNDEFINED: usize = ::std::usize::MAX;
+const UNDEFINED: usize = usize::MAX;
 
 /// This is an implementation of the engineered ["Simple, Fast Dominance
 /// Algorithm"][0] discovered by Cooper et al.
@@ -155,7 +171,7 @@ const UNDEFINED: usize = ::std::usize::MAX;
 pub fn simple_fast<G>(graph: G, root: G::NodeId) -> Dominators<G::NodeId>
 where
     G: IntoNeighbors + Visitable,
-    <G as GraphBase>::NodeId: Eq + Hash,
+    <G as GraphBase>::NodeId: Eq + Hash + Ord,
 {
     let (post_order, predecessor_sets) = simple_fast_post_order(graph, root);
     let length = post_order.len();
@@ -223,7 +239,7 @@ where
     debug_assert!(!dominators.iter().any(|&dom| dom == UNDEFINED));
 
     Dominators {
-        root,
+        root: root,
         dominators: dominators
             .into_iter()
             .enumerate()
@@ -242,6 +258,7 @@ fn intersect(dominators: &[usize], mut finger1: usize, mut finger2: usize) -> us
     }
 }
 
+#[cfg(feature = "std")]
 fn predecessor_sets_to_idx_vecs<N>(
     post_order: &[N],
     node_to_post_order_idx: &HashMap<N, usize>,
@@ -266,6 +283,32 @@ where
         .collect()
 }
 
+#[cfg(feature = "alloc")]
+fn predecessor_sets_to_idx_vecs<N>(
+    post_order: &[N],
+    node_to_post_order_idx: &HashMap<N, usize>,
+    mut predecessor_sets: HashMap<N, HashSet<N>>,
+) -> Vec<Vec<usize>>
+where
+    N: Copy + Eq + Hash + Ord,
+{
+    post_order
+        .iter()
+        .map(|node| {
+            predecessor_sets
+                .remove(node)
+                .map(|predecessors| {
+                    predecessors
+                        .into_iter()
+                        .map(|p| *node_to_post_order_idx.get(&p).unwrap())
+                        .collect()
+                })
+                .unwrap_or_else(Vec::new)
+        })
+        .collect()
+}
+
+#[cfg(feature = "std")]
 fn simple_fast_post_order<G>(
     graph: G,
     root: G::NodeId,
@@ -291,7 +334,34 @@ where
     (post_order, predecessor_sets)
 }
 
+#[cfg(feature = "alloc")]
+fn simple_fast_post_order<G>(
+    graph: G,
+    root: G::NodeId,
+) -> (Vec<G::NodeId>, HashMap<G::NodeId, HashSet<G::NodeId>>)
+where
+    G: IntoNeighbors + Visitable,
+    <G as GraphBase>::NodeId: Eq + Hash + Ord,
+{
+    let mut post_order = vec![];
+    let mut predecessor_sets = HashMap::new();
+
+    for node in DfsPostOrder::new(graph, root).iter(graph) {
+        post_order.push(node);
+
+        for successor in graph.neighbors(node) {
+            predecessor_sets
+                .entry(successor)
+                .or_insert_with(HashSet::new)
+                .insert(node);
+        }
+    }
+
+    (post_order, predecessor_sets)
+}
+
 #[cfg(test)]
+#[cfg(feature = "alloc")]
 mod tests {
     use super::*;
 

@@ -51,13 +51,22 @@ pub use self::dfsvisit::*;
 pub use self::traversal::*;
 
 use fixedbitset::FixedBitSet;
-use std::collections::HashSet;
-use std::hash::{BuildHasher, Hash};
+
+#[cfg(feature = "std")]
+use std::{
+    collections::HashSet,
+    hash::{BuildHasher, Hash},
+};
+
+#[cfg(feature = "alloc")]
+use alloc::collections::BTreeSet as HashSet;
 
 use super::{graph, EdgeType};
 use crate::graph::NodeIndex;
+
 #[cfg(feature = "graphmap")]
 use crate::prelude::GraphMap;
+
 #[cfg(feature = "stable_graph")]
 use crate::prelude::StableGraph;
 use crate::prelude::{Direction, Graph};
@@ -579,10 +588,24 @@ where
     }
 }
 
+#[cfg(feature = "std")]
 impl<N, S> VisitMap<N> for HashSet<N, S>
 where
     N: Hash + Eq,
     S: BuildHasher,
+{
+    fn visit(&mut self, x: N) -> bool {
+        self.insert(x)
+    }
+    fn is_visited(&self, x: &N) -> bool {
+        self.contains(x)
+    }
+}
+
+#[cfg(feature = "no_std")]
+impl<N> VisitMap<N> for HashSet<N>
+where
+    N: Ord + Eq,
 {
     fn visit(&mut self, x: N) -> bool {
         self.insert(x)
@@ -675,7 +698,7 @@ where
     type EdgeId = (N, N);
 }
 
-#[cfg(feature = "graphmap")]
+#[cfg(all(feature = "graphmap", not(feature = "no_std")))]
 impl<N, E, Ty> Visitable for GraphMap<N, E, Ty>
 where
     N: Copy + Ord + Hash,
@@ -684,6 +707,21 @@ where
     type Map = HashSet<N>;
     fn visit_map(&self) -> HashSet<N> {
         HashSet::with_capacity(self.node_count())
+    }
+    fn reset_map(&self, map: &mut Self::Map) {
+        map.clear();
+    }
+}
+
+#[cfg(all(feature = "graphmap", feature = "alloc"))]
+impl<N, E, Ty> Visitable for GraphMap<N, E, Ty>
+where
+    N: Copy + Ord + Hash,
+    Ty: EdgeType,
+{
+    type Map = HashSet<N>;
+    fn visit_map(&self) -> HashSet<N> {
+        HashSet::new()
     }
     fn reset_map(&self, map: &mut Self::Map) {
         map.clear();

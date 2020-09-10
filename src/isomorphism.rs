@@ -1,5 +1,13 @@
-use fixedbitset::FixedBitSet;
+#[cfg(feature = "std")]
 use std::marker;
+
+#[cfg(feature = "no_std")]
+use core::marker;
+
+#[cfg(feature = "alloc")]
+use alloc::vec::Vec;
+
+use fixedbitset::FixedBitSet;
 
 use super::graph::{Graph, IndexType, NodeIndex};
 use super::{EdgeType, Incoming};

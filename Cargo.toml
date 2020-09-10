@@ -5,7 +5,7 @@ version = "0.5.1"
 license = "MIT/Apache-2.0"
 authors = [
 "bluss",
-"mitchmindtree",
+"mitchmindtree"
 ]
 
 description = "Graph data structure library. Provides graph types and graph algorithms."
@@ -31,7 +31,7 @@ debug = true
 fixedbitset = { version = "0.3.0", default-features = false }
 quickcheck = { optional = true, version = "0.8", default-features = false }
 indexmap = { version = "1.0.2" }
-serde = { version = "1.0", optional = true }
+serde = { version = "1.0", optional = true, default-features = false }
 serde_derive = { version = "1.0", optional = true }
 
 [dev-dependencies]
@@ -41,11 +41,15 @@ defmac = "0.1"
 itertools = { version = "0.8", default-features = false }
 
 [features]
-default = ["graphmap", "stable_graph", "matrix_graph"]
+default = ["graphmap", "stable_graph", "matrix_graph", "std"]
+std = []
 graphmap = []
-serde-1 = ["serde", "serde_derive"]
+serde-1 = ["serde/default", "serde_derive"]
+serde-1-no_std = ["serde", "serde_derive"]
 stable_graph = []
 matrix_graph = []
+no_std = ["alloc"]
+alloc = []
 
 # For unstable features
 generate = []

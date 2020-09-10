@@ -4,15 +4,24 @@ jobs:
     - rust: 1.37.0
       env:
       - ALL=' '
+      - FEATURES='default'
     - rust: stable
       env:
-        - FEATURES='unstable quickcheck'
+        - FEATURES='unstable quickcheck default'
         - CHECKFMT=1
     - rust: beta
-    - rust: nightly
+      env:
+       - FEATURES='default'
     - rust: nightly
       env:
-       - FEATURES='unstable quickcheck'
+        - FEATURES='default'
+    - rust: nightly
+      env:
+       - ALL='--package petgraph'
+       - FEATURES='no_std'
+    - rust: nightly
+      env:
+       - FEATURES='unstable quickcheck default'
        - BENCH=1
 branches:
   only:
@@ -24,11 +33,10 @@ before_script:
       fi
 script:
   - |
-      cargo build --verbose --no-default-features &&
-      cargo test --verbose --no-default-features &&
-      cargo build --verbose --features "$FEATURES" &&
-      cargo test ${ALL:---all} --verbose --features "$FEATURES" &&
+      cargo build --verbose --no-default-features --features "$FEATURES" &&
+      cargo test ${ALL:---all} --verbose --no-default-features --features "$FEATURES" &&
       if [ "${CHECKFMT}" == "1"]; then
         cargo +stable fmt -- --check
       fi
+
 

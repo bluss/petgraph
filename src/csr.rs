@@ -1,10 +1,27 @@
 //! Compressed Sparse Row (CSR) is a sparse adjacency matrix graph.
 
-use std::cmp::{max, Ordering};
-use std::iter::{Enumerate, Zip};
-use std::marker::PhantomData;
-use std::ops::{Index, IndexMut, Range};
-use std::slice::Windows;
+#[cfg(feature = "std")]
+use std::{
+    cmp::{max, Ordering},
+    iter::{Enumerate, Zip},
+    marker::PhantomData,
+    ops::{Index, IndexMut, Range},
+    slice::Iter as SliceIter,
+    slice::Windows,
+};
+
+#[cfg(feature = "no_std")]
+use core::{
+    cmp::{max, Ordering},
+    iter::{Enumerate, Zip},
+    marker::PhantomData,
+    ops::{Index, IndexMut, Range},
+    slice::Iter as SliceIter,
+    slice::Windows,
+};
+
+#[cfg(feature = "alloc")]
+use alloc::vec::Vec;
 
 use crate::visit::{Data, GraphProp, IntoEdgeReferences, NodeCount};
 use crate::visit::{EdgeRef, GraphBase, IntoEdges, IntoNeighbors, NodeIndexable};
@@ -583,8 +600,6 @@ where
     }
 }
 
-use std::slice::Iter as SliceIter;
-
 #[derive(Clone, Debug)]
 pub struct Neighbors<'a, Ix: 'a = DefaultIx> {
     iter: SliceIter<'a, NodeIndex<Ix>>,
@@ -736,12 +751,14 @@ Column: [0, 2, 0, 1, 2, 2]
 Row   : [0, 2, 5]   <- value index of row start
 
  * */
-
+#[allow(unused_variables)]
 #[cfg(test)]
 mod tests {
     use super::Csr;
     use crate::algo::bellman_ford;
     use crate::algo::tarjan_scc;
+    #[cfg(feature = "alloc")]
+    use alloc::vec::Vec;
     use crate::visit::Dfs;
     use crate::visit::VisitMap;
     use crate::Undirected;
@@ -755,6 +772,7 @@ mod tests {
         m.add_edge(0, 2, ());
         m.add_edge(1, 0, ());
         m.add_edge(1, 1, ());
+        #[cfg(feature = "std")]
         println!("{:?}", m);
         assert_eq!(&m.column, &[0, 2, 0, 1, 2, 2]);
         assert_eq!(&m.row, &[0, 2, 5, 6]);
@@ -782,6 +800,7 @@ mod tests {
         m.add_edge(0, 2, ());
         m.add_edge(1, 2, ());
         m.add_edge(2, 2, ());
+        #[cfg(feature = "std")]
         println!("{:?}", m);
         assert_eq!(&m.column, &[0, 2, 2, 0, 1, 2]);
         assert_eq!(&m.row, &[0, 2, 3, 6]);
@@ -794,6 +813,7 @@ mod tests {
     fn csr_from_error_1() {
         // not sorted in source
         let m: Csr = Csr::from_sorted_edges(&[(0, 1), (1, 0), (0, 2)]).unwrap();
+        #[cfg(feature = "std")]
         println!("{:?}", m);
     }
 
@@ -802,6 +822,7 @@ mod tests {
     fn csr_from_error_2() {
         // not sorted in target
         let m: Csr = Csr::from_sorted_edges(&[(0, 1), (1, 0), (1, 2), (1, 1)]).unwrap();
+        #[cfg(feature = "std")]
         println!("{:?}", m);
     }
 
@@ -809,6 +830,7 @@ mod tests {
     fn csr_from() {
         let m: Csr =
             Csr::from_sorted_edges(&[(0, 1), (0, 2), (1, 0), (1, 1), (2, 2), (2, 4)]).unwrap();
+        #[cfg(feature = "std")]
         println!("{:?}", m);
         assert_eq!(m.neighbors_slice(0), &[1, 2]);
         assert_eq!(m.neighbors_slice(1), &[0, 1]);
@@ -831,6 +853,7 @@ mod tests {
             (4, 5),
         ])
         .unwrap();
+        #[cfg(feature = "std")]
         println!("{:?}", m);
         let mut dfs = Dfs::new(&m, 0);
         while let Some(_) = dfs.next(&m) {}
@@ -841,6 +864,7 @@ mod tests {
         assert!(!dfs.discovered[5]);
 
         m.add_edge(1, 4, ());
+        #[cfg(feature = "std")]
         println!("{:?}", m);
 
         dfs.reset(&m);
@@ -867,8 +891,11 @@ mod tests {
             (5, 2),
         ])
         .unwrap();
+        #[cfg(feature = "std")]
         println!("{:?}", m);
-        println!("{:?}", tarjan_scc(&m));
+        let tarjan = tarjan_scc(&m);
+        #[cfg(feature = "std")]
+        println!("{:?}", tarjan);
     }
 
     #[test]
@@ -887,8 +914,10 @@ mod tests {
             (7, 8, 3.),
         ])
         .unwrap();
+        #[cfg(feature = "std")]
         println!("{:?}", m);
         let result = bellman_ford(&m, 0).unwrap();
+        #[cfg(feature = "std")]
         println!("{:?}", result);
         let answer = [0., 0.5, 1.5, 1.5];
         assert_eq!(&answer, &result.0[..4]);
@@ -932,6 +961,7 @@ mod tests {
         let mut copy = Vec::new();
         for e in m.edge_references() {
             copy.push((e.source(), e.target(), *e.weight()));
+            #[cfg(feature = "std")]
             println!("{:?}", e);
         }
         let m2: Csr<(), _> = Csr::from_sorted_edges(&copy).unwrap();
@@ -951,6 +981,7 @@ mod tests {
         assert!(g.add_edge(b, c, ()));
         assert!(g.add_edge(c, a, ()));
 
+        #[cfg(feature = "std")]
         println!("{:?}", g);
 
         assert_eq!(g.node_count(), 3);
@@ -972,6 +1003,7 @@ mod tests {
 
         let c = g.add_node(());
 
+        #[cfg(feature = "std")]
         println!("{:?}", g);
 
         assert_eq!(g.node_count(), 3);

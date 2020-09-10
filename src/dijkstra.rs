@@ -1,7 +1,20 @@
-use std::collections::hash_map::Entry::{Occupied, Vacant};
-use std::collections::{BinaryHeap, HashMap};
+#[cfg(feature = "std")]
+use std::collections::{
+    hash_map::Entry::{Occupied, Vacant},
+    BinaryHeap, HashMap,
+};
 
+#[cfg(feature = "alloc")]
+use alloc::collections::{
+    btree_map::Entry::{Occupied, Vacant},
+    BTreeMap as HashMap, BinaryHeap,
+};
+
+#[cfg(feature = "std")]
 use std::hash::Hash;
+
+#[cfg(feature = "no_std")]
+use core::hash::Hash;
 
 use super::visit::{EdgeRef, IntoEdges, VisitMap, Visitable};
 use crate::algo::Measure;
@@ -69,6 +82,7 @@ use crate::scored::MinScored;
 /// assert_eq!(res, expected_res);
 /// // z is not inside res because there is not path from b to z.
 /// ```
+#[cfg(feature = "std")]
 pub fn dijkstra<G, F, K>(
     graph: G,
     start: G::NodeId,
@@ -115,6 +129,60 @@ where
                     //predecessor.insert(next.clone(), node.clone());
                 }
             }
+        }
+        visited.visit(node);
+    }
+    scores
+}
+
+#[cfg(feature = "alloc")]
+pub fn dijkstra<G, F, K>(
+    graph: G,
+    start: G::NodeId,
+    goal: Option<G::NodeId>,
+    mut edge_cost: F,
+) -> HashMap<G::NodeId, K>
+where
+    G: IntoEdges + Visitable,
+    G::NodeId: Eq + Hash + Ord,
+    F: FnMut(G::EdgeRef) -> K,
+    K: Measure + Copy,
+{
+    let mut visited = graph.visit_map();
+    let mut scores = HashMap::new();
+    //let mut predecessor = HashMap::new();
+    let mut visit_next = BinaryHeap::new();
+    let zero_score = K::default();
+    scores.insert(start, zero_score);
+    visit_next.push(MinScored(zero_score, start));
+    while let Some(MinScored(node_score, node)) = visit_next.pop() {
+        if visited.is_visited(&node) {
+            continue;
+        }
+        if goal.as_ref() == Some(&node) {
+            break;
+        }
+        for edge in graph.edges(node) {
+            let next = edge.target();
+            if visited.is_visited(&next) {
+                continue;
+            }
+            let mut next_score = node_score + edge_cost(edge);
+            match scores.entry(next) {
+                Occupied(ent) => {
+                    if next_score < *ent.get() {
+                        *ent.into_mut() = next_score;
+                    //predecessor.insert(next.clone(), node.clone());
+                    } else {
+                        next_score = *ent.get();
+                    }
+                }
+                Vacant(ent) => {
+                    ent.insert(next_score);
+                    //predecessor.insert(next.clone(), node.clone());
+                }
+            }
+            visit_next.push(MinScored(next_score, next));
         }
         visited.visit(node);
     }

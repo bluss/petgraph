@@ -1,4 +1,11 @@
+#[cfg(feature = "std")]
 use std::{
+    hash::Hash,
+    iter::{from_fn, FromIterator},
+};
+
+#[cfg(feature = "no_std")]
+use core::{
     hash::Hash,
     iter::{from_fn, FromIterator},
 };
@@ -84,11 +91,24 @@ where
 
 #[cfg(test)]
 mod test {
-    use std::{collections::HashSet, iter::FromIterator};
+    #[cfg(feature = "std")]
+    use std::iter::FromIterator;
+
+    #[cfg(feature = "no_std")]
+    use core::iter::FromIterator;
+
+    #[cfg(feature = "std")]
+    use std::{collections::HashSet};
+
+    #[cfg(feature = "alloc")]
+    use alloc::{collections::BTreeSet as HashSet, vec::Vec};
 
     use itertools::assert_equal;
 
-    use crate::{dot::Dot, prelude::DiGraph};
+    use crate::prelude::DiGraph;
+
+    #[cfg(feature = "std")]
+    use crate::dot::Dot;
 
     use super::all_simple_paths;
 
@@ -121,6 +141,7 @@ mod test {
             vec![0, 3, 4, 5],
         ];
 
+        #[cfg(feature = "std")]
         println!("{}", Dot::new(&graph));
         let actual_simple_paths_0_to_5: HashSet<Vec<_>> =
             all_simple_paths(&graph, 0u32.into(), 5u32.into(), 0, None)
@@ -138,6 +159,7 @@ mod test {
         let graph = DiGraph::<i32, i32, _>::from_edges(&[(0, 1), (2, 1)]);
 
         let expexted_simple_paths_0_to_1 = &[vec![0usize, 1]];
+        #[cfg(feature = "std")]
         println!("{}", Dot::new(&graph));
         let actual_simple_paths_0_to_1: Vec<Vec<_>> =
             all_simple_paths(&graph, 0u32.into(), 1u32.into(), 0, None)
@@ -152,6 +174,7 @@ mod test {
     fn test_no_simple_paths() {
         let graph = DiGraph::<i32, i32, _>::from_edges(&[(0, 1), (2, 1)]);
 
+        #[cfg(feature = "std")]
         println!("{}", Dot::new(&graph));
         let actual_simple_paths_0_to_2: Vec<Vec<_>> =
             all_simple_paths(&graph, 0u32.into(), 2u32.into(), 0, None)

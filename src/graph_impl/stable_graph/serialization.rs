@@ -1,7 +1,14 @@
 use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+#[cfg(feature = "std")]
 use std::marker::PhantomData;
+
+#[cfg(feature = "no_std")]
+use core::marker::PhantomData;
+
+#[cfg(feature = "alloc")]
+use alloc::vec::Vec;
 
 use crate::prelude::*;
 

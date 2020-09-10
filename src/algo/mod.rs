@@ -7,8 +7,14 @@
 pub mod dominators;
 pub mod tred;
 
-use std::cmp::min;
-use std::collections::{BinaryHeap, HashMap};
+#[cfg(feature = "std")]
+use std::{cmp::min, collections::{BinaryHeap, HashMap, VecDeque}, fmt::Debug, ops::Add};
+
+#[cfg(feature = "no_std")]
+use core::{cmp::min, fmt::Debug, ops::Add};
+
+#[cfg(feature = "alloc")]
+use alloc::{collections::{BinaryHeap, BTreeMap as HashMap}, vec::Vec, collections::vec_deque::VecDeque};
 
 use crate::prelude::*;
 
@@ -840,14 +846,14 @@ where
 pub fn is_bipartite_undirected<G, N, VM>(g: G, start: N) -> bool
 where
     G: GraphRef + Visitable<NodeId = N, Map = VM> + IntoNeighbors<NodeId = N>,
-    N: Copy + PartialEq + std::fmt::Debug,
+    N: Copy + PartialEq + Debug,
     VM: VisitMap<N>,
 {
     let mut red = g.visit_map();
     red.visit(start);
     let mut blue = g.visit_map();
 
-    let mut stack = ::std::collections::VecDeque::new();
+    let mut stack = VecDeque::new();
     stack.push_front(start);
 
     while let Some(node) = stack.pop_front() {
@@ -886,9 +892,6 @@ where
 
     true
 }
-
-use std::fmt::Debug;
-use std::ops::Add;
 
 /// Associated data that can be used for measures (such as length).
 pub trait Measure: Debug + PartialOrd + Add<Self, Output = Self> + Default + Clone {}

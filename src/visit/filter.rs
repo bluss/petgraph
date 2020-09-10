@@ -1,8 +1,14 @@
 use crate::prelude::*;
 
+#[cfg(feature = "no_std")]
+use core::marker::PhantomData;
+#[cfg(feature = "std")]
+use std::{collections::HashSet, marker::PhantomData};
+
+#[cfg(feature = "alloc")]
+use alloc::collections::BTreeSet as HashSet;
+
 use fixedbitset::FixedBitSet;
-use std::collections::HashSet;
-use std::marker::PhantomData;
 
 use crate::data::DataMap;
 use crate::visit::{Data, NodeCompactIndexable, NodeCount};
@@ -38,9 +44,20 @@ where
 }
 
 /// This filter includes the nodes that are contained in the set.
+#[cfg(feature = "std")]
 impl<N, S> FilterNode<N> for HashSet<N, S>
 where
     HashSet<N, S>: VisitMap<N>,
+{
+    fn include_node(&self, n: N) -> bool {
+        self.is_visited(&n)
+    }
+}
+
+#[cfg(feature = "no_std")]
+impl<N> FilterNode<N> for HashSet<N>
+where
+    HashSet<N>: VisitMap<N>,
 {
     fn include_node(&self, n: N) -> bool {
         self.is_visited(&n)
@@ -57,7 +74,7 @@ where
         self.is_visited(&n)
     }
 }
-
+#[cfg(feature = "std")]
 impl<N, S> FilterNode<N> for &HashSet<N, S>
 where
     HashSet<N, S>: VisitMap<N>,

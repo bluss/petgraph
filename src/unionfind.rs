@@ -1,7 +1,14 @@
 //! `UnionFind<K>` is a disjoint-set data structure.
+#[cfg(feature = "alloc")]
+use alloc::vec::Vec;
 
 use super::graph::IndexType;
+
+#[cfg(feature = "std")]
 use std::cmp::Ordering;
+
+#[cfg(feature = "no_std")]
+use core::cmp::Ordering;
 
 /// `UnionFind<K>` is a disjoint-set data structure. It tracks set membership of *n* elements
 /// indexed from *0* to *n - 1*. The scalar type is `K` which must be an unsigned integer type.

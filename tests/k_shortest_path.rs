@@ -1,7 +1,8 @@
 use petgraph::algo::k_shortest_path;
 use petgraph::prelude::*;
 use petgraph::Graph;
-use std::collections::HashMap;
+
+use indexmap::IndexMap;
 
 #[test]
 fn second_shortest_path() {
@@ -45,7 +46,7 @@ fn second_shortest_path() {
 
     let res = k_shortest_path(&graph, a, None, 2, |_| 1);
 
-    let expected_res: HashMap<NodeIndex, usize> = [
+    let expected_res: IndexMap<NodeIndex, usize> = [
         (e, 7),
         (g, 3),
         (h, 4),
