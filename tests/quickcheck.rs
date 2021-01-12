@@ -15,7 +15,7 @@ use utils::Small;
 
 use odds::prelude::*;
 use std::collections::HashSet;
-use std::hash::Hash;
+use std::hash::{Hash, BuildHasher};
 
 use itertools::assert_equal;
 use itertools::cloned;
@@ -416,10 +416,11 @@ fn stable_graph_add_remove_edges() {
     quickcheck::quickcheck(prop as fn(StableGraph<_, _, Directed>, _) -> bool);
 }
 
-fn assert_graphmap_consistent<N, E, Ty>(g: &GraphMap<N, E, Ty>)
+fn assert_graphmap_consistent<N, E, Ty, S>(g: &GraphMap<N, E, Ty, S>)
 where
     Ty: EdgeType,
     N: NodeTrait + fmt::Debug,
+    S: BuildHasher,
 {
     for (a, b, _weight) in g.all_edges() {
         assert!(
@@ -447,7 +448,7 @@ where
 
 #[test]
 fn graphmap_remove() {
-    fn prop<Ty: EdgeType>(mut g: GraphMap<i8, (), Ty>, a: i8, b: i8) -> bool {
+    fn prop<Ty: EdgeType, S: BuildHasher>(mut g: GraphMap<i8, (), Ty, S>, a: i8, b: i8) -> bool {
         //if g.edge_count() > 20 { return true; }
         assert_graphmap_consistent(&g);
         let contains = g.contains_edge(a, b);

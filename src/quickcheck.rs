@@ -7,6 +7,8 @@ use crate::stable_graph::StableGraph;
 use crate::{EdgeType, Graph};
 
 #[cfg(feature = "graphmap")]
+use std::hash::BuildHasher;
+#[cfg(feature = "graphmap")]
 use crate::graphmap::{GraphMap, NodeTrait};
 use crate::visit::NodeIndexable;
 
@@ -176,11 +178,12 @@ where
 ///
 /// Requires crate features `"quickcheck"` and `"graphmap"`
 #[cfg(feature = "graphmap")]
-impl<N, E, Ty> Arbitrary for GraphMap<N, E, Ty>
+impl<N, E, Ty, S> Arbitrary for GraphMap<N, E, Ty, S>
 where
     N: NodeTrait + Arbitrary,
     E: Arbitrary,
     Ty: EdgeType + Clone + Send + 'static,
+    S: BuildHasher + Default + Clone + Send + 'static,
 {
     fn arbitrary<G: Gen>(g: &mut G) -> Self {
         let nodes = usize::arbitrary(g);

@@ -84,7 +84,7 @@ fn remov() {
 
 #[test]
 fn remove_directed() {
-    let mut g = GraphMap::<_, _, Directed>::with_capacity(0, 0);
+    let mut g = DiGraphMap::with_capacity(0, 0);
     g.add_edge(1, 2, -1);
     println!("{:?}", g);
 
@@ -167,13 +167,12 @@ fn edge_iterator() {
 
 #[test]
 fn from_edges() {
-    let gr =
-        GraphMap::<_, _, Undirected>::from_edges(&[("a", "b", 1), ("a", "c", 2), ("c", "d", 3)]);
+    let gr = UnGraphMap::from_edges(&[("a", "b", 1), ("a", "c", 2), ("c", "d", 3)]);
     assert_eq!(gr.node_count(), 4);
     assert_eq!(gr.edge_count(), 3);
     assert_eq!(gr[("a", "c")], 2);
 
-    let gr = GraphMap::<_, (), Undirected>::from_edges(&[
+    let gr = UnGraphMap::<_, ()>::from_edges(&[
         (0, 1),
         (0, 2),
         (0, 3),
@@ -232,7 +231,7 @@ where
 
 #[test]
 fn scc() {
-    let gr: GraphMap<_, u32, Directed> = GraphMap::from_edges(&[
+    let gr: DiGraphMap<_, u32> = GraphMap::from_edges(&[
         (6, 0, 0),
         (0, 3, 1),
         (3, 6, 2),
@@ -254,7 +253,7 @@ fn scc() {
 
 #[test]
 fn test_into_graph() {
-    let gr: GraphMap<_, u32, Directed> = GraphMap::from_edges(&[
+    let gr: DiGraphMap<_, u32> = GraphMap::from_edges(&[
         (6, 0, 0),
         (0, 3, 1),
         (3, 6, 2),
@@ -285,8 +284,7 @@ fn test_into_graph() {
 #[test]
 fn test_all_edges_mut() {
     // graph with edge weights equal to in+out
-    let mut graph: GraphMap<_, u32, Directed> =
-        GraphMap::from_edges(&[(0, 1, 1), (1, 2, 3), (2, 0, 2)]);
+    let mut graph: DiGraphMap<_, u32> = GraphMap::from_edges(&[(0, 1, 1), (1, 2, 3), (2, 0, 2)]);
 
     // change it so edge weight is equal to 2 * (in+out)
     for (start, end, weight) in graph.all_edges_mut() {

@@ -116,10 +116,11 @@ where
 }
 
 #[cfg(feature = "graphmap")]
-impl<'a, N: 'a, E, Ty> IntoNeighbors for &'a GraphMap<N, E, Ty>
+impl<'a, N: 'a, E, Ty, S> IntoNeighbors for &'a GraphMap<N, E, Ty, S>
 where
     N: Copy + Ord + Hash,
     Ty: EdgeType,
+    S: BuildHasher,
 {
     type Neighbors = graphmap::Neighbors<'a, N, Ty>;
     fn neighbors(self, n: Self::NodeId) -> Self::Neighbors {
@@ -202,10 +203,11 @@ where
 }
 
 #[cfg(feature = "graphmap")]
-impl<'a, N: 'a, E, Ty> IntoNeighborsDirected for &'a GraphMap<N, E, Ty>
+impl<'a, N: 'a, E, Ty, S> IntoNeighborsDirected for &'a GraphMap<N, E, Ty, S>
 where
     N: Copy + Ord + Hash,
     Ty: EdgeType,
+    S: BuildHasher,
 {
     type NeighborsDirected = graphmap::NeighborsDirected<'a, N, Ty>;
     fn neighbors_directed(self, n: N, dir: Direction) -> Self::NeighborsDirected {
@@ -436,7 +438,7 @@ pub trait IntoEdgeReferences : Data + GraphRef {
 IntoEdgeReferences! {delegate_impl [] }
 
 #[cfg(feature = "graphmap")]
-impl<N, E, Ty> Data for GraphMap<N, E, Ty>
+impl<N, E, Ty, S> Data for GraphMap<N, E, Ty, S>
 where
     N: Copy + PartialEq,
     Ty: EdgeType,
@@ -479,7 +481,7 @@ where
 }
 
 #[cfg(feature = "graphmap")]
-impl<N, E, Ty> GraphProp for GraphMap<N, E, Ty>
+impl<N, E, Ty, S> GraphProp for GraphMap<N, E, Ty, S>
 where
     N: NodeTrait,
     Ty: EdgeType,
@@ -672,7 +674,7 @@ where
 }
 
 #[cfg(feature = "graphmap")]
-impl<N, E, Ty> GraphBase for GraphMap<N, E, Ty>
+impl<N, E, Ty, S> GraphBase for GraphMap<N, E, Ty, S>
 where
     N: Copy + PartialEq,
 {
@@ -681,10 +683,11 @@ where
 }
 
 #[cfg(feature = "graphmap")]
-impl<N, E, Ty> Visitable for GraphMap<N, E, Ty>
+impl<N, E, Ty, S> Visitable for GraphMap<N, E, Ty, S>
 where
     N: Copy + Ord + Hash,
     Ty: EdgeType,
+    S: BuildHasher,
 {
     type Map = HashSet<N>;
     fn visit_map(&self) -> HashSet<N> {
@@ -718,10 +721,11 @@ GetAdjacencyMatrix! {delegate_impl []}
 
 #[cfg(feature = "graphmap")]
 /// The `GraphMap` keeps an adjacency matrix internally.
-impl<N, E, Ty> GetAdjacencyMatrix for GraphMap<N, E, Ty>
+impl<N, E, Ty, S> GetAdjacencyMatrix for GraphMap<N, E, Ty, S>
 where
     N: Copy + Ord + Hash,
     Ty: EdgeType,
+    S: BuildHasher,
 {
     type AdjMatrix = ();
     #[inline]
