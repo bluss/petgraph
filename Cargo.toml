@@ -45,7 +45,7 @@ bincode = "1.3.3"
 [features]
 default = ["graphmap", "stable_graph", "matrix_graph"]
 graphmap = []
-serde-1 = ["serde", "serde_derive"]
+serde-1 = ["serde", "serde_derive", "indexmap/serde-1"]
 stable_graph = []
 matrix_graph = []
 

@@ -438,7 +438,7 @@ IntoEdgeReferences! {delegate_impl [] }
 #[cfg(feature = "graphmap")]
 impl<N, E, Ty> Data for GraphMap<N, E, Ty>
 where
-    N: Copy + PartialEq,
+    N: Eq + Hash + Copy + PartialEq,
     Ty: EdgeType,
 {
     type NodeWeight = N;
@@ -690,7 +690,7 @@ where
 #[cfg(feature = "graphmap")]
 impl<N, E, Ty> GraphBase for GraphMap<N, E, Ty>
 where
-    N: Copy + PartialEq,
+    N: Eq + Hash + Copy + PartialEq,
 {
     type NodeId = N;
     type EdgeId = (N, N);

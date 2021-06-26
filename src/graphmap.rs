@@ -60,10 +60,78 @@ pub type DiGraphMap<N, E> = GraphMap<N, E, Directed>;
 ///
 /// Depends on crate feature `graphmap` (default).
 #[derive(Clone)]
-pub struct GraphMap<N, E, Ty> {
+#[cfg_attr(
+    feature = "serde-1",
+    derive(Serialize, Deserialize),
+    serde(bound(
+        serialize = "N: serde::Serialize, E: serde::Serialize",
+        deserialize = "N: serde::Deserialize<'de>, E: serde::Deserialize<'de>"
+    ))
+)]
+pub struct GraphMap<N, E, Ty> where N: Eq + Hash {
     nodes: IndexMap<N, Vec<(N, CompactDirection)>>,
+    #[cfg_attr(feature = "serde-1", serde(with = "pair_indexmap_serialize"))]
     edges: IndexMap<(N, N), E>,
+    #[cfg_attr(feature = "serde-1", serde(skip))]
     ty: PhantomData<Ty>,
+}
+#[cfg(feature = "serde-1")]
+mod pair_indexmap_serialize {
+    use indexmap::IndexMap;
+    use serde::de::{Deserialize, Deserializer, SeqAccess, Visitor};
+    use serde::ser::{Serialize, Serializer};
+    use std::fmt;
+    use std::hash::Hash;
+    use std::marker::PhantomData;
+
+    pub fn serialize<N, E, S>(map: &IndexMap<(N, N), E>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        N: Eq + Hash + Serialize,
+        E: Serialize,
+        S: Serializer,
+    {
+        serializer.collect_seq(map.iter().map(|((n0, n1), e)| (n0, n1, e)))
+    }
+
+    pub fn deserialize<'de, N, E, D>(deserializer: D) -> Result<IndexMap<(N, N), E>, D::Error>
+    where
+        N: Eq + Hash + Deserialize<'de>,
+        E: Deserialize<'de>,
+        D: Deserializer<'de>,
+    {
+        struct MapVisitor<N, E> {
+            keys: PhantomData<N>,
+            values: PhantomData<E>,
+        }
+
+        impl<'de, N, E> Visitor<'de> for MapVisitor<N, E>
+        where
+            N: Eq + Hash + Deserialize<'de>,
+            E: Deserialize<'de>,
+        {
+            type Value = IndexMap<(N, N), E>;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a key-value sequence")
+            }
+
+            fn visit_seq<A>(self, mut access: A) -> Result<Self::Value, A::Error>
+            where
+                A: SeqAccess<'de>,
+            {
+                let mut map = IndexMap::with_capacity(access.size_hint().unwrap_or(0));
+                while let Some(tuple) = access.next_element::<(N, N, E)>()? {
+                    map.insert((tuple.0, tuple.1), tuple.2);
+                }
+                Ok(map)
+            }
+        }
+
+        deserializer.deserialize_seq(MapVisitor {
+            keys: PhantomData,
+            values: PhantomData,
+        })
+    }
 }
 
 impl<N: Eq + Hash + fmt::Debug, E: fmt::Debug, Ty: EdgeType> fmt::Debug for GraphMap<N, E, Ty> {
@@ -78,6 +146,7 @@ impl<N> NodeTrait for N where N: Copy + Ord + Hash {}
 
 // non-repr(usize) version of Direction
 #[derive(Copy, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde-1", derive(Serialize, Deserialize))]
 enum CompactDirection {
     Outgoing,
     Incoming,
