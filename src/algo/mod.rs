@@ -30,6 +30,7 @@ pub use super::dijkstra::dijkstra;
 pub use super::feedback_arc_set::greedy_feedback_arc_set;
 pub use super::floyd_warshall::floyd_warshall;
 pub use super::k_shortest_path::k_shortest_path;
+pub use super::modularity::modularity;
 
 pub use super::isomorphism::{
     is_isomorphic, is_isomorphic_matching, is_isomorphic_subgraph, is_isomorphic_subgraph_matching,
