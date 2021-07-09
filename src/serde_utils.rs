@@ -54,7 +54,7 @@ where
     where
         A: SeqAccess<'de>,
     {
-        let mut v = Vec::new();
+        let mut v = Vec::with_capacity(seq.size_hint().unwrap_or_else(|| 0));
         while let Some(elem) = seq.next_element()? {
             match (self.f)(elem) {
                 Err(s) => Err(<A::Error>::custom(s))?,

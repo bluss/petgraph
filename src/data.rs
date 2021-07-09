@@ -275,10 +275,20 @@ pub trait FromElements: Create {
         Self: Sized,
         I: IntoIterator<Item = Element<Self::NodeWeight, Self::EdgeWeight>>,
     {
-        let mut gr = Self::with_capacity(0, 0);
-        // usize -> NodeId map
-        let mut map = Vec::new();
-        for element in iterable {
+        let iterator = iterable.into_iter();
+        let (mut map, mut gr) = {
+            // Assuming a uniform probability distribution, the expected number of nodes and edges
+            // is bound_upper / 2.
+            let bound_expected = {
+                let (bound_lower, opt_bound_upper) = iterator.size_hint();
+                // Upper bound on the number of elements.
+                let bound_upper = opt_bound_upper.unwrap_or_else(|| bound_lower);
+                bound_upper / 2
+            };
+            (Vec::with_capacity(bound_expected), Self::with_capacity(bound_expected,
+                                                                     bound_expected))
+        };
+        for element in iterator {
             match element {
                 Element::Node { weight } => {
                     map.push(gr.add_node(weight));
@@ -301,9 +311,17 @@ where
     G: Create + NodeIndexable,
     I: IntoIterator<Item = Element<G::NodeWeight, G::EdgeWeight>>,
 {
-    let mut gr = G::with_capacity(0, 0);
+    let iterator = iterable.into_iter();
+    let mut gr = {
+        let bound_expected = {
+            let (bound_lower, opt_bound_upper) = iterator.size_hint();
+            let bound_upper = opt_bound_upper.unwrap_or_else(|| bound_lower);
+            bound_upper / 2
+        };
+        G::with_capacity(bound_expected, bound_expected)
+    };
     let map = |gr: &G, i| gr.from_index(i);
-    for element in iterable {
+    for element in iterator {
         match element {
             Element::Node { weight } => {
                 gr.add_node(weight);
