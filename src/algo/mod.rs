@@ -194,7 +194,7 @@ where
 /// needed.
 pub fn is_cyclic_directed<G>(g: G) -> bool
 where
-    G: IntoNodeIdentifiers + IntoNeighbors + Visitable,
+    G: IntoNodeIdentifiers + IntoNeighborsDirected + Visitable,
 {
     use crate::visit::{depth_first_search, DfsEvent};
 
