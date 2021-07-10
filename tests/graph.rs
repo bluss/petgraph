@@ -2304,8 +2304,9 @@ fn test_edge_filtered() {
     }
 }
 
-#[test]
-fn test_dominators_simple_fast() {
+fn test_dominators(
+    make_dominators: fn(&DiGraph<&'static str, ()>, NodeIndex) -> dominators::Dominators<NodeIndex>
+) {
     // Construct the following graph:
     //
     //                                  .-----.
@@ -2370,18 +2371,31 @@ fn test_dominators_simple_fast() {
     let mut graph = DiGraph::<_, _>::new();
 
     let r = graph.add_node("r");
+    println!("r = {:?}", r);
     let a = graph.add_node("a");
+    println!("a = {:?}", a);
     let b = graph.add_node("b");
+    println!("b = {:?}", b);
     let c = graph.add_node("c");
+    println!("c = {:?}", c);
     let d = graph.add_node("d");
+    println!("d = {:?}", d);
     let e = graph.add_node("e");
+    println!("e = {:?}", e);
     let f = graph.add_node("f");
+    println!("f = {:?}", f);
     let g = graph.add_node("g");
+    println!("g = {:?}", g);
     let h = graph.add_node("h");
+    println!("h = {:?}", h);
     let i = graph.add_node("i");
+    println!("i = {:?}", i);
     let j = graph.add_node("j");
+    println!("j = {:?}", j);
     let k = graph.add_node("k");
+    println!("k = {:?}", k);
     let l = graph.add_node("l");
+    println!("l = {:?}", l);
 
     graph.add_edge(r, a, ());
     graph.add_edge(r, b, ());
@@ -2405,7 +2419,12 @@ fn test_dominators_simple_fast() {
     graph.add_edge(k, i, ());
     graph.add_edge(l, h, ());
 
-    let doms = dominators::simple_fast(&graph, r);
+    let doms = make_dominators(&graph, r);
+
+    // For debugging.
+    for node in graph.node_indices() {
+        println!("idom({:?}) = {:?}", node, doms.immediate_dominator(node));
+    }
 
     assert_eq!(doms.root(), r);
     assert_eq!(
@@ -2483,4 +2502,26 @@ fn test_dominators_simple_fast() {
         None,
         "nodes that aren't reachable from the root do not have an idom"
     );
+}
+
+#[test]
+fn simple_fast_dominators() {
+    fn simple_fast(
+        g: &DiGraph<&'static str, ()>,
+        r: NodeIndex
+    ) -> dominators::Dominators<NodeIndex> {
+        dominators::simple_fast(g, r)
+    }
+    test_dominators(simple_fast);
+}
+
+#[test]
+fn lengauer_tarjan_dominators() {
+    fn lengauer_tarjan(
+        g: &DiGraph<&'static str, ()>,
+        r: NodeIndex
+    ) -> dominators::Dominators<NodeIndex> {
+        dominators::lengauer_tarjan(g, r)
+    }
+    test_dominators(lengauer_tarjan);
 }

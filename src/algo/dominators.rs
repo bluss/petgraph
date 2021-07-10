@@ -15,6 +15,7 @@
 use std::cmp::Ordering;
 use std::collections::{hash_map::Iter, HashMap, HashSet};
 use std::hash::Hash;
+use std::iter::FromIterator;
 
 use crate::visit::{DfsPostOrder, GraphBase, IntoNeighbors, Visitable, Walker};
 
@@ -155,7 +156,8 @@ const UNDEFINED: usize = ::std::usize::MAX;
 /// This algorithm is **O(|V|²)**, and therefore has slower theoretical running time
 /// than the Lengauer-Tarjan algorithm (which is **O(|E| log |V|)**. However,
 /// Cooper et al found it to be faster in practice on control flow graphs of up
-/// to ~30,000 vertices.
+/// to ~30,000 vertices. Take this with a grain of salt, and see the documentation for
+/// `lengauer_tarjan` for details.
 ///
 /// [0]: http://www.cs.rice.edu/~keith/EMBED/dom.pdf
 pub fn simple_fast<G>(graph: G, root: G::NodeId) -> Dominators<G::NodeId>
@@ -297,6 +299,283 @@ where
     }
 
     (post_order, predecessor_sets)
+}
+
+/// An implementation of the dominators construction algorithm described in ["A
+/// Fast Algorithm for Finding Dominators in a Flowgraph" by Thomas Lengauer and
+/// Robert E. Tarjan][0].
+///
+/// This algorithm runs in **O(|E| log |V|)** time. This is a better theoretical
+/// running time than the "Simple, Fast" algorithm by Cooper (see
+/// `simple_fast`), but has higher start-up costs and memory requirements. The
+/// "Simple, Fast" paper reported the tipping point where the Lengauer-Tarjan
+/// algorithm outperformed theirs at CFGs with >= 30,000 vertices. Take this
+/// with a grain of salt, however, as noted in ["Finding Dominators in Practice"
+/// by Loukas Georgiadis, Robert E. Tarjan, and Renato F. Werneck][1]:
+///
+/// > Even on small instances, however, we did not observe the clear superiority
+/// > of the ["Simple, Fast" algorithm] reported by Cooper et al.,
+/// > which we attribute to their inefficient implementation of [the simple
+/// > Lengauer-Tarjan algorithm].
+///
+/// Note that this function is an implementation of the simple version of the
+/// Lengauer-Tarjan algorithm. There is another version that has an even better
+/// theoretical running time of **O(|E| α(|E|, |V|))** where **α** is a
+/// functional inverse of Ackermann's function. However, "Finding Dominators in
+/// Practice" found it to be slower than the simpler version for all graphs they
+/// tested:
+///
+/// > Both versions of the Lengauer-Tarjan algorithm (LT [the advanced version])
+/// > and (SLT [the simple version]) are more robust [than the "Simple,
+/// > Engineered" algorithm] on application graphs, and the advantage increases
+/// > with graph size or graph complexity. Among these three, LT was the slowest,
+/// > in contrast with the results reported by Lengauer and Tarjan [30]. SLT and
+/// > [yet another dominators algorithm] were the most consistently fast
+/// > algorithms in practice; since the former is less sensitive to pathological
+/// > instances, we think it should be preferred where performance guarantees
+/// > are important.
+///
+/// When should you choose `simple_fast` and when should you choose
+/// `lengauer_tarjan`? As a rule of thumb, if lower memory usage is of utmost
+/// importance to you, choose `simple_fast`. Otherwise, `lengauer_tarjan` is
+/// usually a better choice.
+///
+/// However! Since both the `simple_fast` and `lengauer_tarjan` functions have
+/// identical signatures, you can trivially try both and profile to see which is
+/// better for you in practice.
+///
+/// [0]: http://www.cs.princeton.edu/courses/archive/spr03/cs423/download/dominators.pdf
+/// [1]: http://jgaa.info/accepted/2006/GeorgiadisTarjanWerneck2006.10.1.pdf
+///
+/// ### Panics
+///
+/// Panics if the graph has `usize::MAX` vertices.
+pub fn lengauer_tarjan<G>(graph: G, root: G::NodeId) -> Dominators<G::NodeId>
+    where G: IntoNeighbors + Visitable,
+          <G as GraphBase>::NodeId: ::std::fmt::Debug + Eq + Hash
+{
+    // The paper uses 1-based DFS numbering for vertices, but we use a 0-based
+    // numbering to match with Rust's indexing.
+    //
+    // The reason the paper does that is because it is then free to use
+    // `semis[w] == 0` as a sentinel for "not seen in this graph traversal yet".
+    // However, since we are storing all auxiliary data in arrays indexed by DFS
+    // numbering (which is much faster than hashing vertices all the time), we
+    // don't know which index in `semis` to check until after the DFS numbering,
+    // which means we can't use `semis` during the DFS numbering. Instead, we
+    // keep a hash set of nodes we have seen, at the cost of some additional
+    // memory overhead.
+
+    // `parents[w]` is the parent of vertex `w` in the spanning tree.
+    //
+    // TODO: since `parents[w]` == `preds[w][0]` for all non-root `w`, we could
+    // try special casing `preds[root]` and removing `parents` altogether. This
+    // remains to be investigated.
+    let mut parents = HashMap::new();
+
+    // `preds[w]` is the set of vertices `v` such that there is an edge from `v`
+    // to `w` in the graph.
+    let mut preds = HashMap::new();
+
+    // Contains different semantic data at different phases of the algorithm:
+    //
+    // * Before vertex `w` is numbered, `semis[w]` is past the end of the
+    //   array. This differs from the paper; see the comment above about 0- vs
+    //   1-based indexing for details.
+    //
+    // * After `w` is numbered but before its semi-dominator has been computed,
+    //   `semis[w] == w`.
+    //
+    // * Once the semi-dominator for `w` is computed, `semis[w]` is the
+    //   semi-dominator for `w`.
+    let mut semis = vec![];
+
+    // `vertices[i]` is the vertex that is numbered `i` in the DFS traversal.
+    let mut vertices = vec![];
+
+    // Step 1: Perform the DFS procedure from the paper, initializing our
+    // auxiliary per-node data along the way.
+
+    let mut stack = vec![root];
+    let mut visited = HashMap::new();
+    let mut seen: HashSet<G::NodeId> = HashSet::from_iter([root].iter().cloned());
+    while let Some(node) = stack.pop() {
+        let n = vertices.len();
+        vertices.push(node);
+
+        debug_assert_eq!(semis.len(), n);
+        semis.push(n);
+
+        debug_assert!(!visited.contains_key(&node));
+        visited.insert(node, n);
+
+        for successor in graph.neighbors(node) {
+            if seen.insert(successor) {
+                stack.push(successor);
+
+                debug_assert!(!parents.contains_key(&successor));
+                parents.insert(successor, node);
+            }
+
+            preds.entry(successor).or_insert(vec![]).push(node);
+        }
+    }
+
+    // Because we use a 0-based DFS numbering, we have to use `usize::MAX` as
+    // our sentinel in `compress` and `eval`, rather than `0` like the paper
+    // does, to avoid doubling the size of `ancestors` (by making its type
+    // `Vec<Option<usize>>`).
+    assert!(vertices.len() < usize::max_value());
+
+    debug_assert_eq!(visited[&root], 0, "The root is always index 0");
+    debug_assert_eq!(visited.len(), seen.len());
+    debug_assert_eq!(visited.len(), semis.len());
+    debug_assert_eq!(visited.len(), vertices.len());
+    debug_assert_eq!(
+        visited.len() - 1,
+        parents.len(),
+        "Every vertex has a parent except for the root"
+    );
+    debug_assert!(
+        preds.len() == vertices.len() || preds.len() == vertices.len() - 1,
+        "Every non-root vertex must have at least one predecessor (its parent); \
+         the root may or may not have a predecessor."
+    );
+
+    drop(seen);
+
+    // Convert to vectors the hash maps that were hash maps only because we
+    // didn't know the DFS numbering for some nodes yet. Accessing via DFS
+    // number indexing is much faster than hash table lookups.
+
+    let preds: Vec<Vec<_>> = vertices.iter()
+        .map(|v| {
+            preds.remove(v)
+                .unwrap_or_else(|| {
+                    debug_assert!(
+                        *v == root,
+                        "Only the root can potentially not have any predecessors"
+                    );
+                    vec![]
+                })
+                .into_iter()
+                .map(|w| visited[&w])
+                .collect()
+        })
+        .collect();
+
+    let parents: Vec<_> = vertices.iter()
+        .map(|v| {
+            if *v == root {
+                0
+            } else {
+                visited[&parents.remove(v).unwrap()]
+            }
+        })
+        .collect();
+
+    // `buckets[w]` contains the set of vertices whose semi-dominator is `w`.
+    //
+    // TODO: There is a trick we can do to avoid all these hash sets and their
+    // heap allocations here: `buckets` can be implemented with two |V| arrays,
+    // as described in the "Finding Dominators in Practice" paper. They found
+    // that "in practice, avoiding unnecessary bucket insertions makes the
+    // algorithm roughly 5% faster."
+    let mut buckets = vec![HashSet::new(); vertices.len()];
+
+    // Contains different semantic data at different phases of the algorithm:
+    //
+    // * After step 3, if `semis[w]` is the immediate dominator of `w`, then
+    //   `doms[w]` is the immediate dominator of `w`. If `semis[w]` is not the
+    //   immediate dominator of `w`, then `doms[w]` is a vertex `v` whose
+    //   immediate dominator is also the immediate dominator of `w`.
+    //
+    // * After step 4, `doms[w]` is the immediate dominator of `w`.
+    let mut doms = vec![0; vertices.len()];
+
+    // Steps 2 and 3 happen simultaneously: we process the non-root vertices in
+    // decreasing order, computing semi-dominators (step 2), and implicitly
+    // defining immediate dominators (step 3). During these steps, we build and
+    // maintain the forest contained within the DFS's spanning tree: the edges
+    // `(parents[w], w)` for each vertex `w` that we've processed thus far.
+
+    let mut ancestors = vec![usize::max_value(); vertices.len()];
+    let mut labels: Vec<_> = (0..vertices.len()).collect();
+
+    for w in (1..vertices.len()).rev() {
+        // Step 2.
+        for v in &preds[w] {
+            let u = eval(*v, &mut ancestors, &mut labels, &semis);
+            if semis[u] < semis[w] {
+                semis[w] = semis[u];
+            }
+        }
+
+        buckets[semis[w]].insert(w);
+        link(parents[w], w, &mut ancestors);
+
+        // Step 3.
+        for v in buckets[parents[w]].drain() {
+            let u = eval(v, &mut ancestors, &mut labels, &semis);
+            doms[v] = if semis[u] < semis[v] {
+                u
+            } else {
+                parents[w]
+            };
+        }
+    }
+
+    // Step 4: fill in immediate dominators that weren't explicitly defined by
+    // step 3.
+    for w in 1..vertices.len() {
+        if doms[w] != semis[w] {
+            doms[w] = doms[doms[w]];
+        }
+    }
+
+    // The root dominates itself.
+    debug_assert_eq!(doms[0], 0);
+
+    // All done! Convert the indices back into nodes.
+    Dominators {
+        root: root,
+        dominators: doms.into_iter()
+            .enumerate()
+            .map(|(idx, idom_idx)| (vertices[idx], vertices[idom_idx]))
+            .collect(),
+    }
+}
+
+// Performs path compression on the forest for `link` and `eval`.
+fn compress(v: usize, ancestors: &mut [usize], labels: &mut [usize], semis: &[usize]) {
+    debug_assert!(ancestors[v] != usize::max_value());
+
+    if ancestors[ancestors[v]] != usize::max_value() {
+        compress(ancestors[v], ancestors, labels, semis);
+
+        if semis[labels[ancestors[v]]] < semis[labels[v]] {
+            labels[v] = labels[ancestors[v]];
+        }
+
+        ancestors[v] = ancestors[ancestors[v]];
+    }
+}
+
+// Add the edge `(v, w)` to the forest.
+#[inline]
+fn link(v: usize, w: usize, ancestors: &mut [usize]) {
+    ancestors[w] = v;
+}
+
+// If `v` is the root for a tree in the forest, then return `v`. Otherwise,
+// return the root of the tree in the forest which contains `v`.
+fn eval(v: usize, ancestors: &mut [usize], labels: &mut [usize], semis: &[usize]) -> usize {
+    if ancestors[v] == usize::max_value() {
+        v
+    } else {
+        compress(v, ancestors, labels, semis);
+        labels[v]
+    }
 }
 
 #[cfg(test)]
