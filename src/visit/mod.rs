@@ -477,3 +477,4 @@ EdgeCount! {delegate_impl []}
 
 mod filter;
 mod reversed;
+mod undirected_adaptor;
